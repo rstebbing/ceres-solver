@@ -54,7 +54,11 @@
 // some confusion about a silent update to the tar ball, so we are
 // being conservative and choosing the next minor version where
 // things are stable.
-#if (SUITESPARSE_VERSION < 4002)
+
+// XXX Richard Stebbing: Changed "4002" to "4000" to use with
+// custom SuiteSparse build which exports `cholmod_camd` WITHOUT
+// Metis support.
+#if (SUITESPARSE_VERSION < 4000)
 #define CERES_NO_CAMD
 #endif
 

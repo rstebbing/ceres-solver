@@ -427,10 +427,15 @@ void TrustRegionMinimizer::Minimize(const Minimizer::Options& options,
                                residuals.data(),
                                gradient.data(),
                                jacobian)) {
-        summary->termination_type = NUMERICAL_FAILURE;
-        summary->error =
-            "Terminating: Residual and Jacobian evaluation failed.";
-        LOG(WARNING) << summary->error;
+
+        // XXX Richard Stebbing: A new minimum must have been already
+        // evalauted to reach this point, so save `x` into `x_min`.
+        x_min = x;
+
+        // XXX Richard Stebbing: Use new termination type
+        // JACOBIAN_EVALUATION_FAILURE.
+        summary->termination_type = JACOBIAN_EVALUATION_FAILURE;
+        VLOG(1) << "Terminating: Jacobian evaluation failure.";
         return;
       }
 

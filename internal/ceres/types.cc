@@ -249,6 +249,8 @@ const char* SolverTerminationTypeToString(SolverTerminationType type) {
     CASESTR(USER_ABORT);
     CASESTR(USER_SUCCESS);
     CASESTR(DID_NOT_RUN);
+    // XXX Richard Stebbing:
+    CASESTR(JACOBIAN_EVALUATION_FAILURE);
     default:
       return "UNKNOWN";
   }

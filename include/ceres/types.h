@@ -322,7 +322,10 @@ enum SolverTerminationType {
   USER_ABORT,
 
   // User's IterationCallback returned SOLVER_TERMINATE_SUCCESSFULLY
-  USER_SUCCESS
+  USER_SUCCESS,
+
+  // XXX Richard Stebing: Jacobian evaluation failure.
+  JACOBIAN_EVALUATION_FAILURE
 };
 
 // Enums used by the IterationCallback instances to indicate to the

@@ -592,7 +592,7 @@ TEST(SolverImpl, CreateLinearSolverNormalOperation) {
 
 #ifndef CERES_NO_SUITESPARSE
   options.linear_solver_type = SPARSE_NORMAL_CHOLESKY;
-  options.sparse_linear_algebra_library = SUITE_SPARSE;
+  options.sparse_linear_algebra_library_type = SUITE_SPARSE;
   solver.reset(SolverImpl::CreateLinearSolver(&options, &error));
   EXPECT_EQ(options.linear_solver_type, SPARSE_NORMAL_CHOLESKY);
   EXPECT_TRUE(solver.get() != NULL);
@@ -600,7 +600,7 @@ TEST(SolverImpl, CreateLinearSolverNormalOperation) {
 
 #ifndef CERES_NO_CXSPARSE
   options.linear_solver_type = SPARSE_NORMAL_CHOLESKY;
-  options.sparse_linear_algebra_library = CX_SPARSE;
+  options.sparse_linear_algebra_library_type = CX_SPARSE;
   solver.reset(SolverImpl::CreateLinearSolver(&options, &error));
   EXPECT_EQ(options.linear_solver_type, SPARSE_NORMAL_CHOLESKY);
   EXPECT_TRUE(solver.get() != NULL);
@@ -989,6 +989,53 @@ TEST(SolverImpl, ReallocationInCreateJacobianBlockSparsityTranspose) {
   Matrix actual_dense_jacobian;
   actual_block_sparse_jacobian->ToDenseMatrix(&actual_dense_jacobian);
   EXPECT_EQ((expected_dense_jacobian - actual_dense_jacobian).norm(), 0.0);
+}
+
+TEST(CompactifyArray, ContiguousEntries) {
+  vector<int> array;
+  array.push_back(0);
+  array.push_back(1);
+  vector<int> expected = array;
+  SolverImpl::CompactifyArray(&array);
+  EXPECT_EQ(array, expected);
+  array.clear();
+
+  array.push_back(1);
+  array.push_back(0);
+  expected = array;
+  SolverImpl::CompactifyArray(&array);
+  EXPECT_EQ(array, expected);
+}
+
+TEST(CompactifyArray, NonContiguousEntries) {
+  vector<int> array;
+  array.push_back(0);
+  array.push_back(2);
+  vector<int> expected;
+  expected.push_back(0);
+  expected.push_back(1);
+  SolverImpl::CompactifyArray(&array);
+  EXPECT_EQ(array, expected);
+}
+
+TEST(CompactifyArray, NonContiguousRepeatingEntries) {
+  vector<int> array;
+  array.push_back(3);
+  array.push_back(1);
+  array.push_back(0);
+  array.push_back(0);
+  array.push_back(0);
+  array.push_back(5);
+  vector<int> expected;
+  expected.push_back(2);
+  expected.push_back(1);
+  expected.push_back(0);
+  expected.push_back(0);
+  expected.push_back(0);
+  expected.push_back(3);
+
+  SolverImpl::CompactifyArray(&array);
+  EXPECT_EQ(array, expected);
 }
 
 }  // namespace internal

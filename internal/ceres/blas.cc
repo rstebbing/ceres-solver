@@ -28,62 +28,51 @@
 //
 // Author: sameeragarwal@google.com (Sameer Agarwal)
 
-#ifndef CERES_INTERNAL_COVARIANCE_IMPL_H_
-#define CERES_INTERNAL_COVARIANCE_IMPL_H_
+#include "ceres/blas.h"
+#include "glog/logging.h"
 
-#include <map>
-#include <set>
-#include <utility>
-#include <vector>
-#include "ceres/covariance.h"
-#include "ceres/internal/scoped_ptr.h"
-#include "ceres/problem_impl.h"
-#include "ceres/suitesparse.h"
+extern "C" void dsyrk_(char* uplo,
+                       char* trans,
+                       int* n,
+                       int* k,
+                       double* alpha,
+                       double* a,
+                       int* lda,
+                       double* beta,
+                       double* c,
+                       int* ldc);
 
 namespace ceres {
-
 namespace internal {
 
-class CompressedRowSparseMatrix;
-
-class CovarianceImpl {
- public:
-  explicit CovarianceImpl(const Covariance::Options& options);
-  ~CovarianceImpl();
-
-  bool Compute(
-      const vector<pair<const double*, const double*> >& covariance_blocks,
-      ProblemImpl* problem);
-
-  bool GetCovarianceBlock(const double* parameter_block1,
-                          const double* parameter_block2,
-                          double* covariance_block) const;
-
-  bool ComputeCovarianceSparsity(
-      const vector<pair<const double*, const double*> >& covariance_blocks,
-      ProblemImpl* problem);
-
-  bool ComputeCovarianceValues();
-  bool ComputeCovarianceValuesUsingSparseCholesky();
-  bool ComputeCovarianceValuesUsingSparseQR();
-  bool ComputeCovarianceValuesUsingDenseSVD();
-
-  const CompressedRowSparseMatrix* covariance_matrix() const {
-    return covariance_matrix_.get();
-  }
-
- private:
-  ProblemImpl* problem_;
-  Covariance::Options options_;
-  Problem::EvaluateOptions evaluate_options_;
-  bool is_computed_;
-  bool is_valid_;
-  map<const double*, int> parameter_block_to_row_index_;
-  set<const double*> constant_parameter_blocks_;
-  scoped_ptr<CompressedRowSparseMatrix> covariance_matrix_;
-};
+void BLAS::SymmetricRankKUpdate(int num_rows,
+                                int num_cols,
+                                const double* a,
+                                bool transpose,
+                                double alpha,
+                                double beta,
+                                double* c) {
+#ifdef CERES_NO_LAPACK
+  LOG(FATAL) << "Ceres was built without a BLAS library.";
+#else
+  char uplo = 'L';
+  char trans = transpose ? 'T' : 'N';
+  int n = transpose ? num_cols : num_rows;
+  int k = transpose ? num_rows : num_cols;
+  int lda = k;
+  int ldc = n;
+  dsyrk_(&uplo,
+         &trans,
+         &n,
+         &k,
+         &alpha,
+         const_cast<double*>(a),
+         &lda,
+         &beta,
+         c,
+         &ldc);
+#endif
+}
 
 }  // namespace internal
 }  // namespace ceres
-
-#endif  // CERES_INTERNAL_COVARIANCE_IMPL_H_

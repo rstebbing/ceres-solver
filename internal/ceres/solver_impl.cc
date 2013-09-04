@@ -317,6 +317,16 @@ void SolverImpl::LineSearchMinimize(
 void SolverImpl::Solve(const Solver::Options& options,
                        ProblemImpl* problem_impl,
                        Solver::Summary* summary) {
+  VLOG(2) << "Initial problem: "
+          << problem_impl->NumParameterBlocks()
+          << " parameter blocks, "
+          << problem_impl->NumParameters()
+          << " parameters,  "
+          << problem_impl->NumResidualBlocks()
+          << " residual blocks, "
+          << problem_impl->NumResiduals()
+          << " residuals.";
+
   if (options.minimizer_type == TRUST_REGION) {
     TrustRegionSolve(options, problem_impl, summary);
   } else {
@@ -506,8 +516,10 @@ void SolverImpl::TrustRegionSolve(const Solver::Options& original_options,
       original_options.num_linear_solver_threads;
   summary->num_linear_solver_threads_used = options.num_linear_solver_threads;
 
-  summary->sparse_linear_algebra_library =
-      options.sparse_linear_algebra_library;
+  summary->dense_linear_algebra_library_type =
+      options.dense_linear_algebra_library_type;
+  summary->sparse_linear_algebra_library_type =
+      options.sparse_linear_algebra_library_type;
 
   summary->trust_region_strategy_type = options.trust_region_strategy_type;
   summary->dogleg_type = options.dogleg_type;
@@ -647,7 +659,7 @@ void SolverImpl::LineSearchSolve(const Solver::Options& original_options,
     LOG(ERROR) << summary->error;
     return;
   }
-  if (original_options.max_lbfgs_rank == 0) {
+  if (original_options.max_lbfgs_rank <= 0) {
     summary->error =
         string("Invalid configuration: require max_lbfgs_rank > 0");
     LOG(ERROR) << summary->error;
@@ -1067,6 +1079,16 @@ Program* SolverImpl::CreateReducedProgram(Solver::Options* options,
     return NULL;
   }
 
+  VLOG(2) << "Reduced problem: "
+          << transformed_program->NumParameterBlocks()
+          << " parameter blocks, "
+          << transformed_program->NumParameters()
+          << " parameters,  "
+          << transformed_program->NumResidualBlocks()
+          << " residual blocks, "
+          << transformed_program->NumResiduals()
+          << " residuals.";
+
   if (transformed_program->NumParameterBlocks() == 0) {
     LOG(WARNING) << "No varying parameter blocks to optimize; "
                  << "bailing early.";
@@ -1092,7 +1114,7 @@ Program* SolverImpl::CreateReducedProgram(Solver::Options* options,
   if (IsSchurType(options->linear_solver_type)) {
     if (!ReorderProgramForSchurTypeLinearSolver(
             options->linear_solver_type,
-            options->sparse_linear_algebra_library,
+            options->sparse_linear_algebra_library_type,
             problem_impl->parameter_map(),
             linear_solver_ordering,
             transformed_program.get(),
@@ -1104,7 +1126,7 @@ Program* SolverImpl::CreateReducedProgram(Solver::Options* options,
 
   if (options->linear_solver_type == SPARSE_NORMAL_CHOLESKY) {
     if (!ReorderProgramForSparseNormalCholesky(
-            options->sparse_linear_algebra_library,
+            options->sparse_linear_algebra_library_type,
             linear_solver_ordering,
             transformed_program.get(),
             error)) {
@@ -1134,9 +1156,32 @@ LinearSolver* SolverImpl::CreateLinearSolver(Solver::Options* options,
     }
   }
 
+#ifdef CERES_NO_LAPACK
+  if (options->linear_solver_type == DENSE_NORMAL_CHOLESKY &&
+      options->dense_linear_algebra_library_type == LAPACK) {
+    *error = "Can't use DENSE_NORMAL_CHOLESKY with LAPACK because "
+        "LAPACK was not enabled when Ceres was built.";
+    return NULL;
+  }
+
+  if (options->linear_solver_type == DENSE_QR &&
+      options->dense_linear_algebra_library_type == LAPACK) {
+    *error = "Can't use DENSE_QR with LAPACK because "
+        "LAPACK was not enabled when Ceres was built.";
+    return NULL;
+  }
+
+  if (options->linear_solver_type == DENSE_SCHUR &&
+      options->dense_linear_algebra_library_type == LAPACK) {
+    *error = "Can't use DENSE_SCHUR with LAPACK because "
+        "LAPACK was not enabled when Ceres was built.";
+    return NULL;
+  }
+#endif
+
 #ifdef CERES_NO_SUITESPARSE
   if (options->linear_solver_type == SPARSE_NORMAL_CHOLESKY &&
-      options->sparse_linear_algebra_library == SUITE_SPARSE) {
+      options->sparse_linear_algebra_library_type == SUITE_SPARSE) {
     *error = "Can't use SPARSE_NORMAL_CHOLESKY with SUITESPARSE because "
              "SuiteSparse was not enabled when Ceres was built.";
     return NULL;
@@ -1157,7 +1202,7 @@ LinearSolver* SolverImpl::CreateLinearSolver(Solver::Options* options,
 
 #ifdef CERES_NO_CXSPARSE
   if (options->linear_solver_type == SPARSE_NORMAL_CHOLESKY &&
-      options->sparse_linear_algebra_library == CX_SPARSE) {
+      options->sparse_linear_algebra_library_type == CX_SPARSE) {
     *error = "Can't use SPARSE_NORMAL_CHOLESKY with CXSPARSE because "
              "CXSparse was not enabled when Ceres was built.";
     return NULL;
@@ -1194,8 +1239,10 @@ LinearSolver* SolverImpl::CreateLinearSolver(Solver::Options* options,
       options->max_linear_solver_iterations;
   linear_solver_options.type = options->linear_solver_type;
   linear_solver_options.preconditioner_type = options->preconditioner_type;
-  linear_solver_options.sparse_linear_algebra_library =
-      options->sparse_linear_algebra_library;
+  linear_solver_options.sparse_linear_algebra_library_type =
+      options->sparse_linear_algebra_library_type;
+  linear_solver_options.dense_linear_algebra_library_type =
+      options->dense_linear_algebra_library_type;
   linear_solver_options.use_postordering = options->use_postordering;
 
   // Ignore user's postordering preferences and force it to be true if
@@ -1204,7 +1251,7 @@ LinearSolver* SolverImpl::CreateLinearSolver(Solver::Options* options,
   // done.
 #if !defined(CERES_NO_SUITESPARSE) && defined(CERES_NO_CAMD)
   if (IsSchurType(linear_solver_options.type) &&
-      linear_solver_options.sparse_linear_algebra_library == SUITE_SPARSE) {
+      options->sparse_linear_algebra_library_type == SUITE_SPARSE) {
     linear_solver_options.use_postordering = true;
   }
 #endif
@@ -1590,6 +1637,11 @@ bool SolverImpl::ReorderProgramForSchurTypeLinearSolver(
               parameter_blocks[i]->mutable_user_state()));
     }
 
+    // Renumber the entries of constraints to be contiguous integers
+    // as camd requires that the group ids be in the range [0,
+    // parameter_blocks.size() - 1].
+    SolverImpl::CompactifyArray(&constraints);
+
     // Set the offsets and index for CreateJacobianSparsityTranspose.
     program->SetParameterOffsetsAndIndex();
     // Compute a block sparse presentation of J'.
@@ -1711,6 +1763,21 @@ bool SolverImpl::ReorderProgramForSparseNormalCholesky(
 
   program->SetParameterOffsetsAndIndex();
   return true;
+}
+
+void SolverImpl::CompactifyArray(vector<int>* array_ptr) {
+  vector<int>& array = *array_ptr;
+  const set<int> unique_group_ids(array.begin(), array.end());
+  map<int, int> group_id_map;
+  for (set<int>::const_iterator it = unique_group_ids.begin();
+       it != unique_group_ids.end();
+       ++it) {
+    InsertOrDie(&group_id_map, *it, group_id_map.size());
+  }
+
+  for (int i = 0; i < array.size(); ++i) {
+    array[i] = group_id_map[array[i]];
+  }
 }
 
 }  // namespace internal

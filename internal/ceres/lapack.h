@@ -28,62 +28,61 @@
 //
 // Author: sameeragarwal@google.com (Sameer Agarwal)
 
-#ifndef CERES_INTERNAL_COVARIANCE_IMPL_H_
-#define CERES_INTERNAL_COVARIANCE_IMPL_H_
-
-#include <map>
-#include <set>
-#include <utility>
-#include <vector>
-#include "ceres/covariance.h"
-#include "ceres/internal/scoped_ptr.h"
-#include "ceres/problem_impl.h"
-#include "ceres/suitesparse.h"
+#ifndef CERES_INTERNAL_LAPACK_H_
+#define CERES_INTERNAL_LAPACK_H_
 
 namespace ceres {
-
 namespace internal {
 
-class CompressedRowSparseMatrix;
-
-class CovarianceImpl {
+class LAPACK {
  public:
-  explicit CovarianceImpl(const Covariance::Options& options);
-  ~CovarianceImpl();
+  // Solve
+  //
+  //  lhs * solution = rhs
+  //
+  // using a Cholesky factorization. Here
+  // lhs is a symmetric positive definite matrix. It is assumed to be
+  // column major and only the lower triangular part of the matrix is
+  // referenced.
+  //
+  // This function uses the LAPACK dpotrf and dpotrs routines.
+  //
+  // The return value is zero if the solve is successful.
+  static int SolveInPlaceUsingCholesky(int num_rows,
+                                       const double* lhs,
+                                       double* rhs_and_solution);
 
-  bool Compute(
-      const vector<pair<const double*, const double*> >& covariance_blocks,
-      ProblemImpl* problem);
+  // The SolveUsingQR function requires a buffer for its temporary
+  // computation. This function given the size of the lhs matrix will
+  // return the size of the buffer needed.
+  static int EstimateWorkSizeForQR(int num_rows, int num_cols);
 
-  bool GetCovarianceBlock(const double* parameter_block1,
-                          const double* parameter_block2,
-                          double* covariance_block) const;
-
-  bool ComputeCovarianceSparsity(
-      const vector<pair<const double*, const double*> >& covariance_blocks,
-      ProblemImpl* problem);
-
-  bool ComputeCovarianceValues();
-  bool ComputeCovarianceValuesUsingSparseCholesky();
-  bool ComputeCovarianceValuesUsingSparseQR();
-  bool ComputeCovarianceValuesUsingDenseSVD();
-
-  const CompressedRowSparseMatrix* covariance_matrix() const {
-    return covariance_matrix_.get();
-  }
-
- private:
-  ProblemImpl* problem_;
-  Covariance::Options options_;
-  Problem::EvaluateOptions evaluate_options_;
-  bool is_computed_;
-  bool is_valid_;
-  map<const double*, int> parameter_block_to_row_index_;
-  set<const double*> constant_parameter_blocks_;
-  scoped_ptr<CompressedRowSparseMatrix> covariance_matrix_;
+  // Solve
+  //
+  //  lhs * solution = rhs
+  //
+  // using a dense QR factorization. lhs is an arbitrary (possibly
+  // rectangular) matrix with full column rank.
+  //
+  // work is an array of size work_size that this routine uses for its
+  // temporary storage. The optimal size of this array can be obtained
+  // by calling EstimateWorkSizeForQR.
+  //
+  // When calling, rhs_and_solution contains the rhs, and upon return
+  // the first num_col entries are the solution.
+  //
+  // This function uses the LAPACK dgels routine.
+  //
+  // The return value is zero if the solve is successful.
+  static int SolveUsingQR(int num_rows,
+                          int num_cols,
+                          const double* lhs,
+                          int work_size,
+                          double* work,
+                          double* rhs_and_solution);
 };
 
 }  // namespace internal
 }  // namespace ceres
 
-#endif  // CERES_INTERNAL_COVARIANCE_IMPL_H_
+#endif  // CERES_INTERNAL_LAPACK_H_

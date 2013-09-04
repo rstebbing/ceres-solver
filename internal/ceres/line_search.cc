@@ -62,6 +62,8 @@ FunctionSample ValueAndGradientSample(const double x,
   return sample;
 };
 
+}  // namespace
+
 // Convenience stream operator for pushing FunctionSamples into log messages.
 std::ostream& operator<<(std::ostream &os,
                          const FunctionSample& sample) {
@@ -70,9 +72,7 @@ std::ostream& operator<<(std::ostream &os,
      << std::boolalpha << sample.value_is_valid << ", gradient_is_valid: "
      << std::boolalpha << sample.gradient_is_valid << "]";
   return os;
-};
-
-}  // namespace
+}
 
 LineSearch::LineSearch(const LineSearch::Options& options)
     : options_(options) {}
@@ -112,7 +112,7 @@ void LineSearchFunction::Init(const Vector& position,
   direction_ = direction;
 }
 
-bool LineSearchFunction::Evaluate(const double x, double* f, double* g) {
+bool LineSearchFunction::Evaluate(double x, double* f, double* g) {
   scaled_direction_ = x * direction_;
   if (!evaluator_->Plus(position_.data(),
                         scaled_direction_.data(),

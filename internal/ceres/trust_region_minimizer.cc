@@ -177,6 +177,7 @@ void TrustRegionMinimizer::Minimize(const Minimizer::Options& options,
   int num_consecutive_invalid_steps = 0;
   bool inner_iterations_are_enabled = options.inner_iteration_minimizer != NULL;
   while (true) {
+    bool inner_iterations_were_useful = false;
     if (!RunCallbacks(options.callbacks, iteration_summary, summary)) {
       return;
     }
@@ -240,8 +241,8 @@ void TrustRegionMinimizer::Minimize(const Minimizer::Options& options,
       //  = -f'J * step - step' * J' * J * step / 2
       model_residuals.setZero();
       jacobian->RightMultiply(trust_region_step.data(), model_residuals.data());
-      model_cost_change = -(residuals.dot(model_residuals) +
-                            model_residuals.squaredNorm() / 2.0);
+      model_cost_change =
+          - model_residuals.dot(residuals + model_residuals / 2.0);
 
       if (model_cost_change < 0.0) {
         VLOG(1) << "Invalid step: current_cost: " << cost
@@ -330,10 +331,12 @@ void TrustRegionMinimizer::Minimize(const Minimizer::Options& options,
                     << " x_plus_delta_cost: " << x_plus_delta_cost
                     << " new_cost: " << new_cost;
             const double inner_iteration_relative_progress =
-                (x_plus_delta_cost - new_cost) / x_plus_delta_cost;
+                1.0 - new_cost / x_plus_delta_cost;
             inner_iterations_are_enabled =
                 (inner_iteration_relative_progress >
                  options.inner_iteration_tolerance);
+
+            inner_iterations_were_useful = new_cost < cost;
 
             // Disable inner iterations once the relative improvement
             // drops below tolerance.
@@ -398,13 +401,51 @@ void TrustRegionMinimizer::Minimize(const Minimizer::Options& options,
           ? max(relative_decrease, historical_relative_decrease)
           : relative_decrease;
 
+      // Normally, the quality of a trust region step is measured by
+      // the ratio
+      //
+      //              cost_change
+      //    r =    -----------------
+      //           model_cost_change
+      //
+      // All the change in the nonlinear objective is due to the trust
+      // region step so this ratio is a good measure of the quality of
+      // the trust region radius. However, when inner iterations are
+      // being used, cost_change includes the contribution of the
+      // inner iterations and its not fair to credit it all to the
+      // trust region algorithm. So we change the ratio to be
+      //
+      //                              cost_change
+      //    r =    ------------------------------------------------
+      //           (model_cost_change + inner_iteration_cost_change)
+      //
+      // In most cases this is fine, but it can be the case that the
+      // change in solution quality due to inner iterations is so large
+      // and the trust region step is so bad, that this ratio can become
+      // quite small.
+      //
+      // This can cause the trust region loop to reject this step. To
+      // get around this, we expicitly check if the inner iterations
+      // led to a net decrease in the objective function value. If
+      // they did, we accept the step even if the trust region ratio
+      // is small.
+      //
+      // Notice that we do not just check that cost_change is positive
+      // which is a weaker condition and would render the
+      // min_relative_decrease threshold useless. Instead, we keep
+      // track of inner_iterations_were_useful, which is true only
+      // when inner iterations lead to a net decrease in the cost.
       iteration_summary.step_is_successful =
-          iteration_summary.relative_decrease > options_.min_relative_decrease;
+          (inner_iterations_were_useful ||
+           iteration_summary.relative_decrease >
+           options_.min_relative_decrease);
 
       if (iteration_summary.step_is_successful) {
         accumulated_candidate_model_cost_change += model_cost_change;
         accumulated_reference_model_cost_change += model_cost_change;
-        if (relative_decrease <= options_.min_relative_decrease) {
+
+        if (!inner_iterations_were_useful &&
+            relative_decrease <= options_.min_relative_decrease) {
           iteration_summary.step_is_nonmonotonic = true;
           VLOG(2) << "Non-monotonic step! "
                   << " relative_decrease: " << relative_decrease

@@ -101,13 +101,31 @@ const char* SparseLinearAlgebraLibraryTypeToString(
   }
 }
 
-
 bool StringToSparseLinearAlgebraLibraryType(
     string value,
     SparseLinearAlgebraLibraryType* type) {
   UpperCase(&value);
   STRENUM(SUITE_SPARSE);
   STRENUM(CX_SPARSE);
+  return false;
+}
+
+const char* DenseLinearAlgebraLibraryTypeToString(
+    DenseLinearAlgebraLibraryType type) {
+  switch (type) {
+    CASESTR(EIGEN);
+    CASESTR(LAPACK);
+    default:
+      return "UNKNOWN";
+  }
+}
+
+bool StringToDenseLinearAlgebraLibraryType(
+    string value,
+    DenseLinearAlgebraLibraryType* type) {
+  UpperCase(&value);
+  STRENUM(EIGEN);
+  STRENUM(LAPACK);
   return false;
 }
 
@@ -239,6 +257,27 @@ bool StringToNonlinearConjugateGradientType(
   return false;
 }
 
+const char* CovarianceAlgorithmTypeToString(
+    CovarianceAlgorithmType type) {
+  switch (type) {
+    CASESTR(DENSE_SVD);
+    CASESTR(SPARSE_CHOLESKY);
+    CASESTR(SPARSE_QR);
+    default:
+      return "UNKNOWN";
+  }
+}
+
+bool StringToCovarianceAlgorithmType(
+    string value,
+    CovarianceAlgorithmType* type) {
+  UpperCase(&value);
+  STRENUM(DENSE_SVD);
+  STRENUM(SPARSE_CHOLESKY);
+  STRENUM(SPARSE_QR);
+  return false;
+}
+
 const char* SolverTerminationTypeToString(SolverTerminationType type) {
   switch (type) {
     CASESTR(NO_CONVERGENCE);
@@ -294,6 +333,23 @@ bool IsSparseLinearAlgebraLibraryTypeAvailable(
   }
 
   LOG(WARNING) << "Unknown sparse linear algebra library " << type;
+  return false;
+}
+
+bool IsDenseLinearAlgebraLibraryTypeAvailable(
+    DenseLinearAlgebraLibraryType type) {
+  if (type == EIGEN) {
+    return true;
+  }
+  if (type == LAPACK) {
+#ifdef CERES_NO_LAPACK
+    return false;
+#else
+    return true;
+#endif
+  }
+
+  LOG(WARNING) << "Unknown dense linear algebra library " << type;
   return false;
 }
 

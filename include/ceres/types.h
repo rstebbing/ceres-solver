@@ -126,6 +126,11 @@ enum SparseLinearAlgebraLibraryType {
   CX_SPARSE
 };
 
+enum DenseLinearAlgebraLibraryType {
+  EIGEN,
+  LAPACK
+};
+
 enum LinearSolverTerminationType {
   // Termination criterion was met. For factorization based solvers
   // the tolerance is assumed to be zero. Any user provided values are
@@ -383,6 +388,12 @@ enum LineSearchInterpolationType {
   CUBIC
 };
 
+enum CovarianceAlgorithmType {
+  DENSE_SVD,
+  SPARSE_CHOLESKY,
+  SPARSE_QR
+};
+
 const char* LinearSolverTypeToString(LinearSolverType type);
 bool StringToLinearSolverType(string value, LinearSolverType* type);
 
@@ -394,6 +405,12 @@ const char* SparseLinearAlgebraLibraryTypeToString(
 bool StringToSparseLinearAlgebraLibraryType(
     string value,
     SparseLinearAlgebraLibraryType* type);
+
+const char* DenseLinearAlgebraLibraryTypeToString(
+    DenseLinearAlgebraLibraryType type);
+bool StringToDenseLinearAlgebraLibraryType(
+    string value,
+    DenseLinearAlgebraLibraryType* type);
 
 const char* TrustRegionStrategyTypeToString(TrustRegionStrategyType type);
 bool StringToTrustRegionStrategyType(string value,
@@ -424,6 +441,12 @@ bool StringToLineSearchInterpolationType(
     string value,
     LineSearchInterpolationType* type);
 
+const char* CovarianceAlgorithmTypeToString(
+    CovarianceAlgorithmType type);
+bool StringToCovarianceAlgorithmType(
+    string value,
+    CovarianceAlgorithmType* type);
+
 const char* LinearSolverTerminationTypeToString(
     LinearSolverTerminationType type);
 
@@ -432,7 +455,8 @@ const char* SolverTerminationTypeToString(SolverTerminationType type);
 bool IsSchurType(LinearSolverType type);
 bool IsSparseLinearAlgebraLibraryTypeAvailable(
     SparseLinearAlgebraLibraryType type);
-
+bool IsDenseLinearAlgebraLibraryTypeAvailable(
+    DenseLinearAlgebraLibraryType type);
 
 }  // namespace ceres
 

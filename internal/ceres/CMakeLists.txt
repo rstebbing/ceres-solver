@@ -30,6 +30,7 @@
 
 SET(CERES_INTERNAL_SRC
     array_utils.cc
+    blas.cc
     block_evaluate_preparer.cc
     block_jacobi_preconditioner.cc
     block_jacobian_writer.cc
@@ -64,6 +65,7 @@ SET(CERES_INTERNAL_SRC
     incomplete_lq_factorization.cc
     iterative_schur_complement_solver.cc
     levenberg_marquardt_strategy.cc
+    lapack.cc
     line_search.cc
     line_search_direction.cc
     line_search_minimizer.cc
@@ -130,20 +132,14 @@ ELSE (SCHUR_SPECIALIZATIONS)
 ENDIF (SCHUR_SPECIALIZATIONS)
 
 # For Android, use the internal Glog implementation.
-IF (BUILD_ANDROID)
-  ADD_LIBRARY(miniglog STATIC
-              miniglog/glog/logging.cc)
-
-  # The Android logging library that defines e.g. __android_log_print is
-  # creatively named "log".
-  TARGET_LINK_LIBRARIES(miniglog log)
-
+IF (MINIGLOG)
+  ADD_LIBRARY(miniglog STATIC miniglog/glog/logging.cc)
   INSTALL(TARGETS miniglog
           EXPORT  CeresExport
           RUNTIME DESTINATION bin
           LIBRARY DESTINATION lib${LIB_SUFFIX}
           ARCHIVE DESTINATION lib${LIB_SUFFIX})
-ENDIF (BUILD_ANDROID)
+ENDIF (MINIGLOG)
 
 SET(CERES_LIBRARY_DEPENDENCIES ${GLOG_LIB})
 
@@ -152,6 +148,7 @@ IF (GFLAGS)
 ENDIF (GFLAGS)
 
 IF (SUITESPARSE_FOUND)
+  LIST(APPEND CERES_LIBRARY_DEPENDENCIES ${SUITESPARSEQR_LIB})
   LIST(APPEND CERES_LIBRARY_DEPENDENCIES ${CHOLMOD_LIB})
   LIST(APPEND CERES_LIBRARY_DEPENDENCIES ${CCOLAMD_LIB})
   LIST(APPEND CERES_LIBRARY_DEPENDENCIES ${CAMD_LIB})
@@ -165,12 +162,20 @@ IF (SUITESPARSE_FOUND)
     LIST(APPEND CERES_LIBRARY_DEPENDENCIES ${METIS_LIB})
   ENDIF (EXISTS ${METIS_LIB})
 
-  LIST(APPEND CERES_LIBRARY_DEPENDENCIES ${LAPACK_LIB})
-
-  IF (EXISTS ${BLAS_LIB})
-    LIST(APPEND CERES_LIBRARY_DEPENDENCIES ${BLAS_LIB})
-  ENDIF (EXISTS ${BLAS_LIB})
+  IF (TBB_FOUND)
+    LIST(APPEND CERES_LIBRARY_DEPENDENCIES ${TBB_LIB})
+    LIST(APPEND CERES_LIBRARY_DEPENDENCIES ${TBB_MALLOC_LIB})
+  ENDIF (TBB_FOUND)
 ENDIF (SUITESPARSE_FOUND)
+
+IF (CXSPARSE_FOUND)
+  LIST(APPEND CERES_LIBRARY_DEPENDENCIES ${CXSPARSE_LIB})
+ENDIF (CXSPARSE_FOUND)
+
+IF (BLAS_AND_LAPACK_FOUND)
+  LIST(APPEND CERES_LIBRARY_DEPENDENCIES ${LAPACK_LIBRARIES})
+  LIST(APPEND CERES_LIBRARY_DEPENDENCIES ${BLAS_LIBRARIES})
+ENDIF (BLAS_AND_LAPACK_FOUND)
 
 IF (CXSPARSE_FOUND)
   LIST(APPEND CERES_LIBRARY_DEPENDENCIES ${CXSPARSE_LIB})
@@ -187,7 +192,11 @@ SET(CERES_LIBRARY_SOURCE
     ${CERES_INTERNAL_HDRS}
     ${CERES_INTERNAL_SCHUR_FILES})
 
-ADD_LIBRARY(ceres STATIC ${CERES_LIBRARY_SOURCE})
+ADD_LIBRARY(ceres ${CERES_LIBRARY_SOURCE})
+SET_TARGET_PROPERTIES(ceres PROPERTIES
+  VERSION ${CERES_VERSION}
+  SOVERSION ${CERES_VERSION_MAJOR}
+)
 TARGET_LINK_LIBRARIES(ceres ${CERES_LIBRARY_DEPENDENCIES})
 
 INSTALL(TARGETS ceres
@@ -195,23 +204,6 @@ INSTALL(TARGETS ceres
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib${LIB_SUFFIX}
         ARCHIVE DESTINATION lib${LIB_SUFFIX})
-
-# Don't build a DLL on MSVC. Supporting Ceres as a DLL on Windows involves
-# nontrivial changes that we haven't made yet.
-IF (NOT MSVC AND NOT BUILD_ANDROID)
-  ADD_LIBRARY(ceres_shared SHARED ${CERES_LIBRARY_SOURCE})
-  TARGET_LINK_LIBRARIES(ceres_shared ${CERES_LIBRARY_DEPENDENCIES})
-  SET_TARGET_PROPERTIES(ceres_shared PROPERTIES
-                        VERSION ${CERES_VERSION}
-                        SOVERSION ${CERES_ABI_VERSION})
-
-  INSTALL(TARGETS ceres_shared
-          EXPORT  CeresExport
-          RUNTIME DESTINATION bin
-          LIBRARY DESTINATION lib${LIB_SUFFIX}
-          ARCHIVE DESTINATION lib${LIB_SUFFIX})
-
-ENDIF (NOT MSVC AND NOT BUILD_ANDROID)
 
 IF (BUILD_TESTING AND GFLAGS)
   ADD_LIBRARY(gtest gmock_gtest_all.cc gmock_main.cc)
@@ -221,6 +213,7 @@ IF (BUILD_TESTING AND GFLAGS)
               test_util.cc)
 
   TARGET_LINK_LIBRARIES(gtest ${GFLAGS_LIB} ${GLOG_LIB})
+  TARGET_LINK_LIBRARIES(test_util ceres gtest ${GLOG_LIB})
 
   MACRO (CERES_TEST NAME)
     ADD_EXECUTABLE(${NAME}_test ${NAME}_test.cc)
@@ -235,7 +228,6 @@ IF (BUILD_TESTING AND GFLAGS)
   CERES_TEST(autodiff)
   CERES_TEST(autodiff_cost_function)
   CERES_TEST(autodiff_local_parameterization)
-  CERES_TEST(blas)
   CERES_TEST(block_random_access_crs_matrix)
   CERES_TEST(block_random_access_dense_matrix)
   CERES_TEST(block_random_access_sparse_matrix)
@@ -278,6 +270,7 @@ IF (BUILD_TESTING AND GFLAGS)
   CERES_TEST(runtime_numeric_diff_cost_function)
   CERES_TEST(schur_complement_solver)
   CERES_TEST(schur_eliminator)
+  CERES_TEST(small_blas)
   CERES_TEST(solver_impl)
 
   # TODO(sameeragarwal): This test should ultimately be made

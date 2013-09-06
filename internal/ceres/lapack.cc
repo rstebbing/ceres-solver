@@ -32,32 +32,35 @@
 #include "glog/logging.h"
 
 // C interface to the LAPACK Cholesky factorization and triangular solve.
-extern "C" void dpotrf_(char* uplo,
+extern "C" void DPOTRF(char* uplo,
                        int* n,
                        double* a,
                        int* lda,
-                       int* info);
+                       int* info,
+                       int uplo_len);
 
-extern "C" void dpotrs_(char* uplo,
-                        int* n,
-                        int* nrhs,
-                        double* a,
-                        int* lda,
-                        double* b,
-                        int* ldb,
-                        int* info);
-
-extern "C" void dgels_(char* uplo,
-                       int* m,
+extern "C" void DPOTRS(char* uplo,
                        int* n,
                        int* nrhs,
                        double* a,
                        int* lda,
                        double* b,
                        int* ldb,
-                       double* work,
-                       int* lwork,
-                       int* info);
+                       int* info,
+                       int uplo_len);
+
+extern "C" void DGELS(char* trans,
+                      int* m,
+                      int* n,
+                      int* nrhs,
+                      double* a,
+                      int* lda,
+                      double* b,
+                      int* ldb,
+                      double* work,
+                      int* lwork,
+                      int* info,
+                      int trans_len);
 
 
 namespace ceres {
@@ -76,13 +79,13 @@ int LAPACK::SolveInPlaceUsingCholesky(int num_rows,
   int nrhs = 1;
   double* lhs = const_cast<double*>(in_lhs);
 
-  dpotrf_(&uplo, &n, lhs, &n, &info);
+  DPOTRF(&uplo, &n, lhs, &n, &info, 1);
   if (info != 0) {
     LOG(INFO) << "Cholesky factorization (dpotrf) failed: " << info;
     return info;
   }
 
-  dpotrs_(&uplo, &n, &nrhs, lhs, &n, rhs_and_solution, &n, &info);
+  DPOTRS(&uplo, &n, &nrhs, lhs, &n, rhs_and_solution, &n, &info, 1);
   if (info != 0) {
     LOG(INFO) << "Triangular solve (dpotrs) failed: " << info;
   }
@@ -101,7 +104,7 @@ int LAPACK::EstimateWorkSizeForQR(int num_rows, int num_cols) {
   int lwork = -1;
   double work;
   int info = 0;
-  dgels_(&trans,
+  DGELS(&trans,
          &num_rows,
          &num_cols,
          &nrhs,
@@ -111,7 +114,8 @@ int LAPACK::EstimateWorkSizeForQR(int num_rows, int num_cols) {
          &num_rows,
          &work,
          &lwork,
-         &info);
+         &info,
+         1);
 
   CHECK_EQ(info, 0);
   return work;
@@ -137,7 +141,7 @@ int LAPACK::SolveUsingQR(int num_rows,
   int info = 0;
   double* lhs = const_cast<double*>(in_lhs);
 
-  dgels_(&trans,
+  DGELS(&trans,
          &m,
          &n,
          &nrhs,
@@ -147,7 +151,8 @@ int LAPACK::SolveUsingQR(int num_rows,
          &ldb,
          work,
          &work_size,
-         &info);
+         &info,
+         1);
 
   return info;
 #endif

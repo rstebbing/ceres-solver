@@ -31,16 +31,17 @@
 #include "ceres/blas.h"
 #include "glog/logging.h"
 
-extern "C" void dsyrk_(char* uplo,
-                       char* trans,
-                       int* n,
-                       int* k,
-                       double* alpha,
-                       double* a,
-                       int* lda,
-                       double* beta,
-                       double* c,
-                       int* ldc);
+extern "C" void DSYRK(char* uplo,
+                      char* trans,
+                      int* n,
+                      int* k,
+                      double* alpha,
+                      double* a,
+                      int* lda,
+                      double* beta,
+                      double* c,
+                      int* ldc,
+                      int uplo_len);
 
 namespace ceres {
 namespace internal {
@@ -61,7 +62,7 @@ void BLAS::SymmetricRankKUpdate(int num_rows,
   int k = transpose ? num_rows : num_cols;
   int lda = k;
   int ldc = n;
-  dsyrk_(&uplo,
+  DSYRK(&uplo,
          &trans,
          &n,
          &k,
@@ -70,7 +71,8 @@ void BLAS::SymmetricRankKUpdate(int num_rows,
          &lda,
          &beta,
          c,
-         &ldc);
+         &ldc,
+         1);
 #endif
 }
 

@@ -250,20 +250,26 @@ CERES_GEMM_BEGIN(MatrixTransposeMatrixMultiplyNaive) {
   DCHECK_LE(start_row_c + NUM_ROW_C, row_stride_c);
   DCHECK_LE(start_col_c + NUM_COL_C, col_stride_c);
 
-  for (int row = 0; row < NUM_ROW_C; ++row) {
-    for (int col = 0; col < NUM_COL_C; ++col) {
-      double tmp = 0.0;
-      for (int k = 0; k < NUM_ROW_A; ++k) {
-        tmp += A[k * NUM_COL_A + row] * B[k * NUM_COL_B + col];
+  if (kOperation == 0) {
+    for (int row = 0; row < NUM_ROW_C; ++row) {
+      for (int col = 0; col < NUM_COL_C; ++col) {
+        const int index = (row + start_row_c) * col_stride_c + start_col_c + col;
+        C[index] = 0.0;
       }
+    }
+  }
 
-      const int index = (row + start_row_c) * col_stride_c + start_col_c + col;
-      if (kOperation > 0) {
-        C[index]+= tmp;
-      } else if (kOperation < 0) {
-        C[index]-= tmp;
-      } else {
-        C[index]= tmp;
+  for (int k = 0; k < NUM_ROW_A; ++k) {
+    for (int row = 0; row < NUM_ROW_C; ++row) {
+      for (int col = 0; col < NUM_COL_C; ++col) {
+        const double tmp = A[k * NUM_COL_A + row] * B[k * NUM_COL_B + col];
+        const int index = (row + start_row_c) * col_stride_c + start_col_c + col;
+
+        if (kOperation >= 0) {
+          C[index] += tmp;
+        } else {
+          C[index] -= tmp;
+        }
       }
     }
   }

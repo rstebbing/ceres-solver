@@ -32,36 +32,7 @@
 #include "glog/logging.h"
 
 // C interface to the LAPACK Cholesky factorization and triangular solve.
-extern "C" void DPOTRF(char* uplo,
-                       int* n,
-                       double* a,
-                       int* lda,
-                       int* info,
-                       int uplo_len);
-
-extern "C" void DPOTRS(char* uplo,
-                       int* n,
-                       int* nrhs,
-                       double* a,
-                       int* lda,
-                       double* b,
-                       int* ldb,
-                       int* info,
-                       int uplo_len);
-
-extern "C" void DGELS(char* trans,
-                      int* m,
-                      int* n,
-                      int* nrhs,
-                      double* a,
-                      int* lda,
-                      double* b,
-                      int* ldb,
-                      double* work,
-                      int* lwork,
-                      int* info,
-                      int trans_len);
-
+#include <mkl.h>
 
 namespace ceres {
 namespace internal {
@@ -79,13 +50,13 @@ int LAPACK::SolveInPlaceUsingCholesky(int num_rows,
   int nrhs = 1;
   double* lhs = const_cast<double*>(in_lhs);
 
-  DPOTRF(&uplo, &n, lhs, &n, &info, 1);
+  dpotrf(&uplo, &n, lhs, &n, &info);
   if (info != 0) {
     LOG(INFO) << "Cholesky factorization (dpotrf) failed: " << info;
     return info;
   }
 
-  DPOTRS(&uplo, &n, &nrhs, lhs, &n, rhs_and_solution, &n, &info, 1);
+  dpotrs(&uplo, &n, &nrhs, lhs, &n, rhs_and_solution, &n, &info);
   if (info != 0) {
     LOG(INFO) << "Triangular solve (dpotrs) failed: " << info;
   }
@@ -104,7 +75,7 @@ int LAPACK::EstimateWorkSizeForQR(int num_rows, int num_cols) {
   int lwork = -1;
   double work;
   int info = 0;
-  DGELS(&trans,
+  dgels(&trans,
          &num_rows,
          &num_cols,
          &nrhs,
@@ -114,8 +85,7 @@ int LAPACK::EstimateWorkSizeForQR(int num_rows, int num_cols) {
          &num_rows,
          &work,
          &lwork,
-         &info,
-         1);
+         &info);
 
   CHECK_EQ(info, 0);
   return work;
@@ -141,7 +111,7 @@ int LAPACK::SolveUsingQR(int num_rows,
   int info = 0;
   double* lhs = const_cast<double*>(in_lhs);
 
-  DGELS(&trans,
+  dgels(&trans,
          &m,
          &n,
          &nrhs,
@@ -151,8 +121,7 @@ int LAPACK::SolveUsingQR(int num_rows,
          &ldb,
          work,
          &work_size,
-         &info,
-         1);
+         &info);
 
   return info;
 #endif

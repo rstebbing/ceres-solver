@@ -1666,6 +1666,7 @@ bool SolverImpl::ReorderProgramForSchurTypeLinearSolver(
 #endif
 
   program->SetParameterOffsetsAndIndex();
+#ifdef CERES_LEXICOGRAPHICALLY_ORDER
   // Schur type solvers also require that their residual blocks be
   // lexicographically ordered.
   const int num_eliminate_blocks =
@@ -1673,6 +1674,9 @@ bool SolverImpl::ReorderProgramForSchurTypeLinearSolver(
   return LexicographicallyOrderResidualBlocks(num_eliminate_blocks,
                                               program,
                                               error);
+#else
+  return true;
+#endif
 }
 
 bool SolverImpl::ReorderProgramForSparseNormalCholesky(

@@ -1614,12 +1614,14 @@ bool SolverImpl::ReorderProgramForSchurTypeLinearSolver(
   } else {
     // The user provided an ordering with more than one elimination
     // group. Trust the user and apply the ordering.
+#ifdef CERES_SCHUR_APPLY_USER_ORDERING
     if (!ApplyUserOrdering(parameter_map,
                            parameter_block_ordering,
                            program,
                            error)) {
       return false;
     }
+#endif
   }
 
   // Pre-order the columns corresponding to the schur complement if

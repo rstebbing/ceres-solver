@@ -932,7 +932,8 @@ bool SolverImpl::IsOrderingValid(const Solver::Options& options,
     const vector<ResidualBlock*>& residual_blocks = program.residual_blocks();
     const set<double*>& e_blocks  =
         options.linear_solver_ordering->group_to_elements().begin()->second;
-    if (!IsParameterBlockSetIndependent(e_blocks, residual_blocks)) {
+    if (options.schur_eliminator == nullptr &&
+        !IsParameterBlockSetIndependent(e_blocks, residual_blocks)) {
       *error = "The user requested the use of a Schur type solver. "
           "But the first elimination group in the ordering is not an "
           "independent set.";
@@ -1244,6 +1245,7 @@ LinearSolver* SolverImpl::CreateLinearSolver(Solver::Options* options,
   linear_solver_options.dense_linear_algebra_library_type =
       options->dense_linear_algebra_library_type;
   linear_solver_options.use_postordering = options->use_postordering;
+  linear_solver_options.schur_eliminator = options->schur_eliminator;
 
   // Ignore user's postordering preferences and force it to be true if
   // cholmod_camd is not available. This ensures that the linear

@@ -51,6 +51,7 @@ namespace ceres {
 namespace internal {
 
 class LinearOperator;
+class SchurEliminatorBase;
 
 // Abstract base class for objects that implement algorithms for
 // solving linear systems
@@ -83,7 +84,8 @@ class LinearSolver {
           residual_reset_period(10),
           row_block_size(Eigen::Dynamic),
           e_block_size(Eigen::Dynamic),
-          f_block_size(Eigen::Dynamic) {
+          f_block_size(Eigen::Dynamic),
+          schur_eliminator(nullptr) {
     }
 
     LinearSolverType type;
@@ -141,6 +143,7 @@ class LinearSolver {
     int row_block_size;
     int e_block_size;
     int f_block_size;
+    SchurEliminatorBase* schur_eliminator;
   };
 
   // Options for the Solve method.

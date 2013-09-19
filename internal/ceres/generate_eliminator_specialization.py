@@ -149,6 +149,9 @@ namespace internal {
 
 SchurEliminatorBase*
 SchurEliminatorBase::Create(const LinearSolver::Options& options) {
+  if (options.type == DENSE_SCHUR && options.schur_eliminator != nullptr) {
+    return options.schur_eliminator;
+  }
 #ifndef CERES_RESTRICT_SCHUR_SPECIALIZATION
 """
 

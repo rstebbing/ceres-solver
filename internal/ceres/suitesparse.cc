@@ -120,6 +120,12 @@ cholmod_dense* SuiteSparse::CreateDenseVector(const double* x,
     return v;
 }
 
+cholmod_dense* SuiteSparse::CreateDenseZerosMatrix(int num_rows,
+                                                   int num_cols) {
+  return CHECK_NOTNULL(
+    cholmod_zeros(num_rows, num_cols, CHOLMOD_REAL, &cc_));
+}
+
 cholmod_factor* SuiteSparse::AnalyzeCholesky(cholmod_sparse* A) {
   // Cholmod can try multiple re-ordering strategies to find a fill
   // reducing ordering. Here we just tell it use AMD with automatic

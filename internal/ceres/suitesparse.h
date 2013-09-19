@@ -106,6 +106,9 @@ class SuiteSparse {
   // an all zeros vector is returned. Caller owns the result.
   cholmod_dense* CreateDenseVector(const double* x, int in_size, int out_size);
 
+  // Create a dense column-major cholmod_dense matrix.
+  cholmod_dense* CreateDenseZerosMatrix(int num_rows, int num_cols);
+
   // The matrix A is scaled using the matrix whose diagonal is the
   // vector scale. mode describes how scaling is applied. Possible
   // values are CHOLMOD_ROW for row scaling - diag(scale) * A,

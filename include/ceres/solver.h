@@ -45,6 +45,10 @@ namespace ceres {
 
 class Problem;
 
+namespace internal {
+  class SchurEliminatorBase;
+}
+
 // Interface for non-linear least squares solvers.
 class Solver {
  public:
@@ -116,6 +120,7 @@ class Solver {
       use_inner_iterations = false;
       inner_iteration_tolerance = 1e-3;
       inner_iteration_ordering = NULL;
+      schur_eliminator = NULL;
       logging_type = PER_MINIMIZER_ITERATION;
       minimizer_progress_to_stdout = false;
       trust_region_problem_dump_directory = "/tmp";
@@ -572,6 +577,9 @@ class Solver {
     //    number groups. Each group must be an independent set. Not
     //    all parameter blocks need to be present in the ordering.
     ParameterBlockOrdering* inner_iteration_ordering;
+
+    // Schur eliminator which can be user-defined.
+    ceres::internal::SchurEliminatorBase* schur_eliminator;
 
     // Generally speaking, inner iterations make significant progress
     // in the early stages of the solve and then their contribution

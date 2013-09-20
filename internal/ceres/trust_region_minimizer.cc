@@ -344,7 +344,11 @@ void TrustRegionMinimizer::Minimize(const Minimizer::Options& options,
         }
       }
 
+#ifdef CERES_USE_PARAMETER_TOLERANCE_TERMINATION
       iteration_summary.step_norm = (x - x_plus_delta).norm();
+#else
+      iteration_summary.step_norm = std::numeric_limits<double>::max();
+#endif
 
       // Convergence based on parameter_tolerance.
       const double step_size_tolerance =  options_.parameter_tolerance *

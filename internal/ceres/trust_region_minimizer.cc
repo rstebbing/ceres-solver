@@ -215,11 +215,17 @@ void TrustRegionMinimizer::Minimize(const Minimizer::Options& options,
       per_solve_options.dump_filename_base.clear();
     }
 
+
+    double compute_step_start_time = WallTimeInSeconds();
     TrustRegionStrategy::Summary strategy_summary =
         strategy->ComputeStep(per_solve_options,
                               jacobian,
                               residuals.data(),
                               trust_region_step.data());
+    double compute_step_end_time = WallTimeInSeconds();
+    VLOG(1) << "ComputeStep: "
+            << compute_step_end_time - compute_step_start_time
+            << std::endl;
 
     iteration_summary = IterationSummary();
     iteration_summary.iteration = summary->iterations.back().iteration + 1;

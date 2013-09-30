@@ -4,6 +4,8 @@
 
 #include "ceres/compressed_row_sparse_matrix.h"
 
+#include <mkl.h>
+
 namespace ceres {
 namespace internal {
 
@@ -27,6 +29,10 @@ DynamicSparseNormalCholeskySolver::SolveImplUsingSuiteSparse(
     const double* b,
     const LinearSolver::PerSolveOptions& per_solve_options,
     double * x) {
+
+  const int mkl_max_num_threads = mkl_get_max_threads();
+  mkl_set_num_threads(options_.num_threads);
+
   EventLogger event_logger("DynamicSparseNormalCholeskySolver::SuiteSparse::Solve");
 
   const int num_cols = A->num_cols();
@@ -75,6 +81,9 @@ DynamicSparseNormalCholeskySolver::SolveImplUsingSuiteSparse(
   }
 
   event_logger.AddEvent("Teardown");
+
+  mkl_set_num_threads(mkl_max_num_threads);
+
   return summary;
 }
 

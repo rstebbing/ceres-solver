@@ -75,6 +75,10 @@ enum LinearSolverType {
   // SuiteSparse or CXSparse.
   SPARSE_NORMAL_CHOLESKY,
 
+  // Solve the normal equations using a sparse cholesky solver, but with
+  // a dynamic sparsity pattern. Requires SuiteSparse.
+  DYNAMIC_SPARSE_NORMAL_CHOLESKY,
+
   // Specialized solvers, specific to problems with a generalized
   // bi-partitite structure.
 

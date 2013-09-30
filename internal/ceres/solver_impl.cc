@@ -1199,6 +1199,13 @@ LinearSolver* SolverImpl::CreateLinearSolver(Solver::Options* options,
         "Ceres with SuiteSparse support.";
     return NULL;
   }
+
+  if (options->linear_solver_type == DYNAMIC_SPARSE_NORMAL_CHOLESKY &&
+      options->sparse_linear_algebra_library_type == SUITE_SPARSE) {
+    *error = "Can't use DYNAMICSPARSE_NORMAL_CHOLESKY with SUITESPARSE "
+             "because SuiteSparse was not enabled when Ceres was built.";
+    return NULL;
+  }
 #endif
 
 #ifdef CERES_NO_CXSPARSE

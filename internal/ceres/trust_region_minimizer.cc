@@ -223,7 +223,7 @@ void TrustRegionMinimizer::Minimize(const Minimizer::Options& options,
                               residuals.data(),
                               trust_region_step.data());
     double compute_step_end_time = WallTimeInSeconds();
-    VLOG(1) << "ComputeStep: "
+    VLOG(2) << "ComputeStep: "
             << compute_step_end_time - compute_step_start_time
             << std::endl;
 

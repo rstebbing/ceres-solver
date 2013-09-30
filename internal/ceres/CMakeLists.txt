@@ -58,6 +58,7 @@ SET(CERES_INTERNAL_SRC
     dense_sparse_matrix.cc
     detect_structure.cc
     dogleg_strategy.cc
+    dynamic_sparse_normal_cholesky_solver.cc
     dynamic_compressed_row_jacobian_writer.cc
     dynamic_compressed_row_sparse_matrix.cc
     evaluator.cc

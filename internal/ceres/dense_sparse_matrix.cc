@@ -174,7 +174,7 @@ void DenseSparseMatrix::ToTextFile(FILE* file) const {
 
   for (int r = 0; r < active_rows; ++r) {
     for (int c = 0; c < m_.cols(); ++c) {
-      fprintf(file,  "% 10d % 10d %17f\n", r, c, m_(r, c));
+      fprintf(file,  "% 10d % 10d %.17g\n", r, c, m_(r, c));
     }
   }
 }

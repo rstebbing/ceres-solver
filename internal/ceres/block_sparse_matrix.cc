@@ -230,7 +230,7 @@ void BlockSparseMatrix::ToTextFile(FILE* file) const {
       int jac_pos = cells[j].position;
       for (int r = 0; r < row_block_size; ++r) {
         for (int c = 0; c < col_block_size; ++c) {
-          fprintf(file, "% 10d % 10d %17f\n",
+          fprintf(file, "% 10d % 10d %.17g\n",
                   row_block_pos + r,
                   col_block_pos + c,
                   values_[jac_pos++]);

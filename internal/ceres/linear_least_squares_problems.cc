@@ -537,7 +537,7 @@ void WriteArrayToFileOrDie(const string& filename,
   FILE* fptr = fopen(filename.c_str(), "w");
   CHECK_NOTNULL(fptr);
   for (int i = 0; i < size; ++i) {
-    fprintf(fptr, "%17f\n", x[i]);
+    fprintf(fptr, "%.17g\n", x[i]);
   }
   fclose(fptr);
 }

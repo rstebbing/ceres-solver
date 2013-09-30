@@ -128,7 +128,7 @@ class CompressedRowSparseMatrix : public SparseMatrix {
       const double* diagonal,
       const vector<int>& blocks);
 
- private:
+ protected:
   int num_rows_;
   int num_cols_;
   vector<int> rows_;

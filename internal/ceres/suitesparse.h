@@ -224,6 +224,9 @@ class SuiteSparse {
   // ordering.
   bool ApproximateMinimumDegreeOrdering(cholmod_sparse* matrix, int* ordering);
 
+  // Find a fill reducing order using Metis.
+  // ordering is expected to be large enough to hold the ordering.
+  bool MetisOrdering(cholmod_sparse* matrix, int* ordering);
 
   // Before SuiteSparse version 4.2.0, cholmod_camd was only enabled
   // if SuiteSparse was compiled with Metis support. This makes

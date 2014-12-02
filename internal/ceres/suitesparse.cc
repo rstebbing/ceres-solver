@@ -130,9 +130,12 @@ cholmod_factor* SuiteSparse::AnalyzeCholesky(cholmod_sparse* A,
   // reducing ordering. Here we just tell it use AMD with automatic
   // matrix dependence choice of supernodal versus simplicial
   // factorization.
+  // cc_.nmethods = 2;
+  // cc_.method[0].ordering = CHOLMOD_AMD;
+  // cc_.method[1].ordering = CHOLMOD_METIS;
+  // cc_.supernodal = CHOLMOD_AUTO;
   cc_.nmethods = 1;
-  cc_.method[0].ordering = CHOLMOD_AMD;
-  cc_.supernodal = CHOLMOD_AUTO;
+  cc_.method[0].ordering = CHOLMOD_METIS;
 
   cholmod_factor* factor = cholmod_analyze(A, &cc_);
   if (VLOG_IS_ON(2)) {
@@ -322,7 +325,17 @@ cholmod_dense* SuiteSparse::Solve(cholmod_factor* L,
 
 bool SuiteSparse::ApproximateMinimumDegreeOrdering(cholmod_sparse* matrix,
                                                    int* ordering) {
-  return cholmod_amd(matrix, NULL, 0, ordering, &cc_);
+  int r = cholmod_amd(matrix, NULL, 0, ordering, &cc_);
+  if (VLOG_IS_ON(2)) {
+    cholmod_print_common(const_cast<char*>("Symbolic Analysis"), &cc_);
+  }
+  return r;
+}
+
+bool SuiteSparse::MetisOrdering(cholmod_sparse* matrix,
+                                int* ordering) {
+  // return cholmod_metis(matrix, NULL, 0, 0, ordering, &cc_);
+  return true;
 }
 
 bool SuiteSparse::ConstrainedApproximateMinimumDegreeOrdering(

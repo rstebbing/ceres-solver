@@ -472,6 +472,7 @@ void TrustRegionMinimizer::Minimize(const Minimizer::Options& options,
       iteration_summary.step_norm = (x - x_plus_delta).norm();
 
       // Convergence based on parameter_tolerance.
+#ifdef ENABLE_CONVERGENCE_BY_PARAMETER_TOLERANCE
       const double step_size_tolerance =  options_.parameter_tolerance *
           (x_norm + options_.parameter_tolerance);
       if (iteration_summary.step_norm <= step_size_tolerance) {
@@ -485,6 +486,7 @@ void TrustRegionMinimizer::Minimize(const Minimizer::Options& options,
         VLOG_IF(1, is_not_silent) << "Terminating: " << summary->message;
         return;
       }
+#endif
 
       iteration_summary.cost_change =  cost - new_cost;
       const double absolute_function_tolerance =
